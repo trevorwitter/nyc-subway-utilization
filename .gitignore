@@ -5,3 +5,4 @@ __pycache__
 scratch/*
 *.csv
 .ipynb_checkpoints/
+.DS_Store/
