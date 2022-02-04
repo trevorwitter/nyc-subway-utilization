@@ -1,0 +1,7 @@
+runs/*
+models/*
+data/*
+__pycache__
+scratch/*
+*.csv
+.ipynb_checkpoints/
