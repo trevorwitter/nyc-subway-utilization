@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from utils import preprocess_data, SequenceDataset, train_model, score_model, log, get_predictions, plot_predictions
 from model import LSTMRegression
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 
 def arg_parse():
@@ -35,11 +35,12 @@ def train(
     dropout=0,
     num_epochs=2
     ):
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-    #logger = log(path="logs/",file="timeseries_training.logs")
-    
-    df_train, df_test, features, target = preprocess_data(
+
+    #use_mps = torch.has_mps
+    #device = torch.device("mps" if use_mps else "cpu")
+    logger = log(path="logs/",file="timeseries_training.logs")
+
+    df_train, df_test, features = preprocess_data(
         df,
         target_feature, 
         forecast_lead=forecast_lead,
@@ -48,14 +49,14 @@ def train(
 
     train_dataset = SequenceDataset(
         df_train,
-        target=target,
+        #target=None,
         features=features,
         sequence_length=sequence_length
         )
 
     test_dataset = SequenceDataset(
         df_test,
-        target=target,
+        #target=None,
         features=features,
         sequence_length=sequence_length
         )
@@ -63,39 +64,38 @@ def train(
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
-    tb = SummaryWriter()
+    #tb = SummaryWriter()
     model = LSTMRegression(
         num_features=len(features), 
         hidden_units=num_hidden_units,
         num_layers=num_layers,
         dropout=dropout
-        )
+        )#.to(device=device)
+    print(model)
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     seqs, labels = next(iter(train_loader))
-    tb.add_graph(model,seqs)
+    #tb.add_graph(model,seqs)
     
     test_score = score_model(test_loader, model, loss_function)
 
     
     for ix_epoch in range(num_epochs):
-        #logger.info(f"Epoch: {ix_epoch}")
+        logger.info(f"Epoch: {ix_epoch}")
         train_score = train_model(train_loader, model, loss_function, optimizer=optimizer)
-        tb.add_scalar("Train Loss", train_score, ix_epoch)
-        #logger.info(f"Train score: {train_score}")
+        #tb.add_scalar("Train Loss", train_score, ix_epoch)
         test_score = score_model(test_loader, model, loss_function)
-        tb.add_scalar("Test Loss", test_score, ix_epoch)
-        #logger.info(f"Test score: {test_score}")
-        print(f"Epoch {ix_epoch} -- Train Loss: {train_score}; Test Loss: {test_score}")
-    tb.close()
+        #tb.add_scalar("Test Loss", test_score, ix_epoch)
+        logger.info(f"Epoch {ix_epoch} -- Train Loss: {train_score}; Test Loss: {test_score}")
+    #tb.close()
        
     
     model_name = f"LSTM_{num_hidden_units}unit_{num_layers}layer_{sequence_length}seq.pt"
     torch.save(model, f"models/{model_name}")
-    #logger.info(f"model saved to: models/{model_name}")
+    logger.info(f"model saved to: models/{model_name}")
 
-    df_preds = get_predictions(test_loader,model, df_test, target)
+    df_preds = get_predictions(test_loader,model, df_test)
     plot_predictions(df_preds)
 
     return model

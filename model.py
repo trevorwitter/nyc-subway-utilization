@@ -16,12 +16,12 @@ class LSTMRegression(nn.Module):
             num_layers=self.num_layers,
             dropout=self.dropout
         )
-        self.linear = nn.Linear(in_features=self.hidden_units, out_features=1)
+        self.linear = nn.Linear(in_features=self.hidden_units, out_features=self.num_features)
         
     def forward(self,x):
         batch_size = x.shape[0]
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_units).requires_grad_()
         c0 = torch.zeros(self.num_layers, batch_size, self.hidden_units).requires_grad_()
         _,(hn,_) = self.lstm(x, (h0, c0))
-        out = self.linear(hn[0]).flatten()
+        out = self.linear(hn[0])#.flatten()
         return out
