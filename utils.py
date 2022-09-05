@@ -3,6 +3,7 @@ import logging
 import torch
 from torch import nn
 from torch.utils.data import Dataset
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -50,16 +51,16 @@ def preprocess_data(df, target_feature, forecast_lead=15, train_test_split=0.8):
     features = list(df.columns.difference([target_feature]))
     target = f"{target_feature}_lead_{forecast_lead}"
 
-    df[target] = df[target_feature].shift(-forecast_lead)
-    df = df.iloc[:-forecast_lead]
+    #df[target] = df[target_feature].shift(-forecast_lead)
+    #df = df.iloc[:-forecast_lead]
 
     test_start = int(len(df) * train_test_split)
 
     df_train = df.iloc[:test_start].copy()
     df_test = df.iloc[test_start:].copy()
 
-    target_mean = df_train[target].mean()
-    target_stdev = df_train[target].std()
+    #target_mean = df_train[target].mean()
+    #target_stdev = df_train[target].std()
 
     for c in df_train.columns:
         mean = df_train[c].mean()
@@ -68,17 +69,16 @@ def preprocess_data(df, target_feature, forecast_lead=15, train_test_split=0.8):
         df_train[c] = (df_train[c] - mean) / stdev
         df_test[c] = (df_test[c] - mean) / stdev
 
-    return df_train, df_test, features, target
+    return df_train, df_test, features
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, dataframe, target, features, sequence_length=5):
+    def __init__(self, dataframe, features, sequence_length=5, forecast_lead=15):
         self.features = features
-        self.target = target
+        self.forecast_lead = forecast_lead
         self.sequence_length = sequence_length
-        self.y = torch.tensor(dataframe[target].values).float()
-        self.X = torch.tensor(dataframe[features].values).float()
-        
+        self.X = torch.tensor(dataframe[features].iloc[:-15,:].values).float()
+        self.y = torch.tensor(dataframe[features].iloc[self.forecast_lead:,:].values).float()
     def __len__(self):
         return self.X.shape[0]
     
@@ -90,15 +90,18 @@ class SequenceDataset(Dataset):
             padding = self.X[0].repeat(self.sequence_length - i - 1, 1)
             x = self.X[0:(i+1), :]
             x = torch.cat((padding, x), 0)
+        #y = self.X[i + self.forecast_lead]
         return x, self.y[i]
 
 
-def train_model(data_loader, model, loss_function, optimizer):
+def train_model(data_loader, model, loss_function, optimizer, device=torch.device("mps")):
     num_batches = len(data_loader)
     total_loss = 0
     model.train()
     
     for X, y in data_loader:
+        #X = X.to(device=device)
+        #y = y.to(device=device)
         output = model(X)
         loss = loss_function(output, y)
         optimizer.zero_grad()
@@ -109,13 +112,15 @@ def train_model(data_loader, model, loss_function, optimizer):
     #print(f"Train loss: {avg_loss}")
     return avg_loss
     
-def score_model(data_loader, model, loss_function):
+def score_model(data_loader, model, loss_function, device=torch.device("mps")):
     num_batches = len(data_loader)
     total_loss = 0
-    
+    #model = model.to(device)
     model.eval()
     with torch.no_grad():
         for X, y in data_loader:
+            #X = X.to(device)
+            #y = y.to(device)
             output = model(X)
             total_loss += loss_function(output, y).item()
     avg_loss = total_loss/num_batches
@@ -132,20 +137,27 @@ def predict(data_loader, model):
             output = torch.cat((output, y_star), 0)
     return output
 
-def get_predictions(data_loader,model, df_test, target):
-    ystar_col = "Model Forecast"
-    #df_train[ystar_col] = predict(train_eval_loader, model).numpy()
-    df_test[ystar_col] = predict(data_loader, model).numpy()
+#def get_predictions(data_loader,model, df_test, target):
+#    ystar_col = "Model Forecast"
+#    #df_train[ystar_col] = predict(train_eval_loader, model).numpy()
+#    df_test[ystar_col] = predict(data_loader, model).numpy()
 
-    df_out = df_test[[target, ystar_col]]
+#    df_out = df_test[[target, ystar_col]]
 
-    #for c in df_out.columns:
-    #    df_out[c] = df_out[c] * target_stdev + target_mean
+#    #for c in df_out.columns:
+#    #    df_out[c] = df_out[c] * target_stdev + target_mean
     
-    return df_out
+#    return df_out
+
+def get_predictions(data_loader, model, df_test, target=None):
+    preds = predict(data_loader, model)
+    df_preds = pd.DataFrame()
+    df_preds['y_pred'] = preds[:,0]
+    df_preds['y_true'] = [x for x in df_test.iloc[:-15,0]]
+    return df_preds
 
 def plot_predictions(df_preds):
     fig_dims = (20, 10)
     fig, ax = plt.subplots(figsize=fig_dims)
-    sns.lineplot(data=df_preds,ax=ax)
+    sns.lineplot(data=df_preds.head(600),ax=ax)
     plt.show()
