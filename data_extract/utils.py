@@ -4,8 +4,15 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 
 
-def get_dates(start_date, weeks):
+def convert_start_date(date):
+    """converts selected date to saturday of same week"""
+
+    pass
+
+
+def get_dates(start_date, weeks=1):
     # update to change start date to last saturday if date is not saturday
+    #start_date = convert_start_date(date)
     dates = []
 
     date_1 = datetime.datetime.strptime(start_date, "%y%m%d")

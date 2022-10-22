@@ -36,6 +36,6 @@ if __name__ == "__main__":
     if replace_anomalies == True:
         file_name = f"data/mta_subway_{start_date}_{weeks}wk_dbscan.parquet"
     elif replace_anomalies == False:
-        file_name = f"data/mta_subway_{start_date}_{weeks}wk.parquet"
+        file_name = f"../data/mta_subway_{start_date}_{weeks}wk.parquet"
     df.to_parquet(file_name)
     
