@@ -34,7 +34,7 @@ if __name__ == "__main__":
               weeks=weeks, 
               replace_anomalies=replace_anomalies)
     if replace_anomalies == True:
-        file_name = f"data/mta_subway_{start_date}_{weeks}wk_dbscan.parquet"
+        file_name = f"../data/mta_subway_{start_date}_{weeks}wk_dbscan.parquet"
     elif replace_anomalies == False:
         file_name = f"../data/mta_subway_{start_date}_{weeks}wk.parquet"
     df.to_parquet(file_name)
