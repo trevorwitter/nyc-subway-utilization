@@ -47,9 +47,9 @@ def log(path, file):
 
     return logger
 
-def preprocess_data(df, target_feature, forecast_lead=15, train_test_split=0.8):
-    features = list(df.columns.difference([target_feature]))
-    target = f"{target_feature}_lead_{forecast_lead}"
+def preprocess_data(df, forecast_lead=15, train_test_split=0.8):
+    features = list(df.columns)
+    #target = f"{target_feature}_lead_{forecast_lead}"
 
     #df[target] = df[target_feature].shift(-forecast_lead)
     #df = df.iloc[:-forecast_lead]
@@ -77,7 +77,7 @@ class SequenceDataset(Dataset):
         self.features = features
         self.forecast_lead = forecast_lead
         self.sequence_length = sequence_length
-        self.X = torch.tensor(dataframe[features].iloc[:-15,:].values).float()
+        self.X = torch.tensor(dataframe[features].iloc[:-self.forecast_lead,:].values).float()
         self.y = torch.tensor(dataframe[features].iloc[self.forecast_lead:,:].values).float()
     def __len__(self):
         return self.X.shape[0]
@@ -128,7 +128,6 @@ def score_model(data_loader, model, loss_function, device=torch.device("mps")):
     return avg_loss
 
 def predict(data_loader, model):
-
     output = torch.tensor([])
     model.eval()
     with torch.no_grad():
@@ -137,27 +136,20 @@ def predict(data_loader, model):
             output = torch.cat((output, y_star), 0)
     return output
 
-#def get_predictions(data_loader,model, df_test, target):
-#    ystar_col = "Model Forecast"
-#    #df_train[ystar_col] = predict(train_eval_loader, model).numpy()
-#    df_test[ystar_col] = predict(data_loader, model).numpy()
+def get_predictions(data_loader,model, df_test, target):
+    ystar_col = "Model Forecast"
+    #df_train[ystar_col] = predict(train_eval_loader, model).numpy()
+    df_test[ystar_col] = predict(data_loader, model).numpy()
 
-#    df_out = df_test[[target, ystar_col]]
+    df_out = df_test[[target, ystar_col]]
 
-#    #for c in df_out.columns:
-#    #    df_out[c] = df_out[c] * target_stdev + target_mean
+    #for c in df_out.columns:
+    #    df_out[c] = df_out[c] * target_stdev + target_mean
     
-#    return df_out
-
-def get_predictions(data_loader, model, df_test, target=None):
-    preds = predict(data_loader, model)
-    df_preds = pd.DataFrame()
-    df_preds['y_pred'] = preds[:,0]
-    df_preds['y_true'] = [x for x in df_test.iloc[:-15,0]]
-    return df_preds
+    return df_out
 
 def plot_predictions(df_preds):
-    fig_dims = (20, 10)
+    fig_dims = (40, 10)
     fig, ax = plt.subplots(figsize=fig_dims)
-    sns.lineplot(data=df_preds.head(600),ax=ax)
+    sns.lineplot(data=df_preds,ax=ax)
     plt.show()
