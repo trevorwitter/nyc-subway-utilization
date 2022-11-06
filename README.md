@@ -1,11 +1,11 @@
 # NYC Subway Utilization
 
 ## Data Extract
-- Notes: change from `start_date` + `n` weeks to `end_date` - `n` weeks approach; better aligned with data extract for inference
+- Pulls NYC subway turnstile entry and exit data for set number of weeks prior to selected `end_date`
 
 
 ## Model
-- Notes: Change to predict one week hourly turnstile from prior two weeks
+- Predicts hourly turnstile entries and exits
 
 ## App
-- Notes: 
+- Model inference - predicts upcoming week's hourly turnstile entries and exits given prior two week's data
