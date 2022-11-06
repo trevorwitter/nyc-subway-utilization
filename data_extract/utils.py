@@ -5,22 +5,21 @@ from sklearn.cluster import DBSCAN
 
 
 def convert_start_date(date):
-    """converts selected date to saturday of same week"""
-
-    pass
+    """converts selected date to last saturday"""
+    date = datetime.datetime.strptime(date, "%y%m%d")
+    idx = (date.weekday() + 1) % 7
+    sat = date - datetime.timedelta(7+idx-6)
+    return sat
 
 
 def get_dates(start_date, weeks=1):
-    # update to change start date to last saturday if date is not saturday
-    #start_date = convert_start_date(date)
+    start_date = convert_start_date(start_date)
     dates = []
-
-    date_1 = datetime.datetime.strptime(start_date, "%y%m%d")
-    dates.append(date_1.strftime("%y%m%d"))
+    dates.append(start_date.strftime("%y%m%d"))
     for x in range(1,weeks):
-        next_date = (date_1 + datetime.timedelta(weeks=x)).strftime("%y%m%d")
+        next_date = (start_date - datetime.timedelta(weeks=x)).strftime("%y%m%d")
         dates.append(next_date)
-    return dates
+    return sorted(dates)
 
 
 def get_files(start_date, weeks):

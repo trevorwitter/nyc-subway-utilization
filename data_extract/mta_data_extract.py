@@ -26,7 +26,7 @@ def main(start_date, weeks=1, replace_anomalies=False):
 if __name__ == "__main__":
     #start_date = "220108"
     #weeks = 39
-    start_date = "210109"
+    start_date = "221105"
     weeks = 90
     replace_anomalies = True
 
