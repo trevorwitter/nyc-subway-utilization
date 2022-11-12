@@ -47,7 +47,8 @@ def log(path, file):
 
     return logger
 
-def preprocess_data(df, forecast_lead=15, train_test_split=0.8):
+def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
+    """To do: save column means and stds to json to use for converting back at inference"""
     features = list(df.columns)
     #target = f"{target_feature}_lead_{forecast_lead}"
 
@@ -68,7 +69,7 @@ def preprocess_data(df, forecast_lead=15, train_test_split=0.8):
 
         df_train[c] = (df_train[c] - mean) / stdev
         df_test[c] = (df_test[c] - mean) / stdev
-
+    
     return df_train, df_test, features
 
 
@@ -83,8 +84,8 @@ class SequenceDataset(Dataset):
         return self.X.shape[0]
     
     def __getitem__(self, i):
-        if i > self.sequence_length -1:
-            i_start = i - self.sequence_length +1
+        if i > self.sequence_length - 1:
+            i_start = i - self.sequence_length + 1
             x = self.X[i_start:(i + 1), :]
         else:
             padding = self.X[0].repeat(self.sequence_length - i - 1, 1)
@@ -136,20 +137,20 @@ def predict(data_loader, model):
             output = torch.cat((output, y_star), 0)
     return output
 
-def get_predictions(data_loader,model, df_test, target):
-    ystar_col = "Model Forecast"
-    #df_train[ystar_col] = predict(train_eval_loader, model).numpy()
-    df_test[ystar_col] = predict(data_loader, model).numpy()
+def get_predictions(data_loader,model, df_test, target=None):
+    #ystar_col = "Model Forecast"
+    #df_test[ystar_col] = predict(data_loader, model).numpy()
 
-    df_out = df_test[[target, ystar_col]]
+    #df_out = df_test[[target, ystar_col]]
 
     #for c in df_out.columns:
     #    df_out[c] = df_out[c] * target_stdev + target_mean
     
+    df_out = predict(data_loader, model).numpy()
     return df_out
 
 def plot_predictions(df_preds):
     fig_dims = (40, 10)
     fig, ax = plt.subplots(figsize=fig_dims)
-    sns.lineplot(data=df_preds,ax=ax)
+    sns.lineplot(data=df_preds[:,:3],ax=ax)
     plt.show()

@@ -12,7 +12,7 @@ from model import LSTMRegression
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", default='14 ST-UNION SQ_entries', help="Select feature to predict future values of")
-    parser.add_argument("--forecast_lead", default=15, type=int, help="Number of sequential steps ahead to predict")
+    parser.add_argument("--forecast_lead", default=0, type=int, help="Number of sequential steps ahead to predict")
     parser.add_argument("--batch_size", default=4, type=int, help="Training Batch size")
     parser.add_argument("--sequence_length", default=30, type=int, help="Sequence length")
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="Model learning rate")
@@ -26,7 +26,7 @@ def arg_parse():
 def train(
     df, 
     target_feature, 
-    forecast_lead=15,
+    forecast_lead=0,
     batch_size=32,
     sequence_length=30,
     learning_rate = 5e-5,
@@ -43,7 +43,7 @@ def train(
     df_train, df_test, features = preprocess_data(
         df,
         target_feature, 
-        forecast_lead=forecast_lead,
+        #forecast_lead=forecast_lead,
         train_test_split=0.8
         )
 
