@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 import torch
 from torch import nn
@@ -50,26 +51,25 @@ def log(path, file):
 def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
     """To do: save column means and stds to json to use for converting back at inference"""
     features = list(df.columns)
-    #target = f"{target_feature}_lead_{forecast_lead}"
-
-    #df[target] = df[target_feature].shift(-forecast_lead)
-    #df = df.iloc[:-forecast_lead]
+    
 
     test_start = int(len(df) * train_test_split)
 
     df_train = df.iloc[:test_start].copy()
     df_test = df.iloc[test_start:].copy()
+    import json
 
-    #target_mean = df_train[target].mean()
-    #target_stdev = df_train[target].std()
-
+    col_stats = {}
     for c in df_train.columns:
+        #save these values to json to refer back to
         mean = df_train[c].mean()
         stdev = df_train[c].std()
-
+        col_stats[f"{c}_mean"] = mean
+        col_stats[f"{c}_std"] = stdev
         df_train[c] = (df_train[c] - mean) / stdev
         df_test[c] = (df_test[c] - mean) / stdev
-    
+    with open('location_means_stds.json', 'w') as fp:
+        json.dump(col_stats, fp)
     return df_train, df_test, features
 
 
@@ -147,6 +147,8 @@ def get_predictions(data_loader,model, df_test, target=None):
     #    df_out[c] = df_out[c] * target_stdev + target_mean
     
     df_out = predict(data_loader, model).numpy()
+    # Convert to dataframe with location column names
+    # Then transform predictions back to unnormalized ((value*std)+mean)
     return df_out
 
 def plot_predictions(df_preds):
