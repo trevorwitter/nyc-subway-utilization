@@ -66,8 +66,12 @@ def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
         stdev = df_train[c].std()
         col_stats[f"{c}_mean"] = mean
         col_stats[f"{c}_std"] = stdev
-        df_train[c] = (df_train[c] - mean) / stdev
-        df_test[c] = (df_test[c] - mean) / stdev
+        if mean == 0 and stdev == 0:
+            df_train[c] = 0
+            df_test[c] = 0
+        else:
+            df_train[c] = (df_train[c] - mean) / stdev
+            df_test[c] = (df_test[c] - mean) / stdev
     with open('location_means_stds.json', 'w') as fp:
         json.dump(col_stats, fp)
     return df_train, df_test, features
@@ -151,8 +155,9 @@ def get_predictions(data_loader,model, df_test, target=None):
     # Then transform predictions back to unnormalized ((value*std)+mean)
     return df_out
 
-def plot_predictions(df_preds):
+def plot_predictions(df_preds, df_test):
     fig_dims = (40, 10)
     fig, ax = plt.subplots(figsize=fig_dims)
-    sns.lineplot(data=df_preds[:,:3],ax=ax)
+    sns.lineplot(data=df_preds[:,3], ax=ax)
+    sns.lineplot(data=df_test.loc[:, 3], ax=ax)
     plt.show()
