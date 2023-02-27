@@ -78,7 +78,7 @@ def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, dataframe, features, sequence_length=5, forecast_lead=15):
+    def __init__(self, dataframe, features, sequence_length=30, forecast_lead=1):
         self.features = features
         self.forecast_lead = forecast_lead
         self.sequence_length = sequence_length
@@ -109,12 +109,11 @@ def train_model(data_loader, model, loss_function, optimizer, device=torch.devic
         #y = y.to(device=device)
         output = model(X)
         loss = loss_function(output, y)
+        total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        total_loss += loss.item()
     avg_loss = total_loss/num_batches
-    #print(f"Train loss: {avg_loss}")
     return avg_loss
     
 def score_model(data_loader, model, loss_function, device=torch.device("mps")):
@@ -127,9 +126,9 @@ def score_model(data_loader, model, loss_function, device=torch.device("mps")):
             #X = X.to(device)
             #y = y.to(device)
             output = model(X)
-            total_loss += loss_function(output, y).item()
+            loss = loss_function(output, y)
+            total_loss += loss.item()
     avg_loss = total_loss/num_batches
-    #print(f"Test loss: {avg_loss}")
     return avg_loss
 
 def predict(data_loader, model):
