@@ -66,15 +66,19 @@ def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
         stdev = df_train[c].std()
         col_stats[f"{c}_mean"] = mean
         col_stats[f"{c}_std"] = stdev
-        df_train[c] = (df_train[c] - mean) / stdev
-        df_test[c] = (df_test[c] - mean) / stdev
+        if mean == 0 and stdev == 0:
+            df_train[c] = 0
+            df_test[c] = 0
+        else:
+            df_train[c] = (df_train[c] - mean) / stdev
+            df_test[c] = (df_test[c] - mean) / stdev
     with open('location_means_stds.json', 'w') as fp:
         json.dump(col_stats, fp)
     return df_train, df_test, features
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, dataframe, features, sequence_length=5, forecast_lead=15):
+    def __init__(self, dataframe, features, sequence_length=30, forecast_lead=1):
         self.features = features
         self.forecast_lead = forecast_lead
         self.sequence_length = sequence_length
@@ -105,12 +109,11 @@ def train_model(data_loader, model, loss_function, optimizer, device=torch.devic
         #y = y.to(device=device)
         output = model(X)
         loss = loss_function(output, y)
+        total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        total_loss += loss.item()
     avg_loss = total_loss/num_batches
-    #print(f"Train loss: {avg_loss}")
     return avg_loss
     
 def score_model(data_loader, model, loss_function, device=torch.device("mps")):
@@ -123,9 +126,9 @@ def score_model(data_loader, model, loss_function, device=torch.device("mps")):
             #X = X.to(device)
             #y = y.to(device)
             output = model(X)
-            total_loss += loss_function(output, y).item()
+            loss = loss_function(output, y)
+            total_loss += loss.item()
     avg_loss = total_loss/num_batches
-    #print(f"Test loss: {avg_loss}")
     return avg_loss
 
 def predict(data_loader, model):
@@ -151,8 +154,9 @@ def get_predictions(data_loader,model, df_test, target=None):
     # Then transform predictions back to unnormalized ((value*std)+mean)
     return df_out
 
-def plot_predictions(df_preds):
+def plot_predictions(df_preds, df_test):
     fig_dims = (40, 10)
     fig, ax = plt.subplots(figsize=fig_dims)
-    sns.lineplot(data=df_preds[:,:3],ax=ax)
+    sns.lineplot(data=df_preds[:,3], ax=ax)
+    sns.lineplot(data=df_test.loc[:, 3], ax=ax)
     plt.show()
