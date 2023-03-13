@@ -1,6 +1,7 @@
 from dataclasses import replace
 import numpy as np
 import datetime
+import pickle
 import pandas as pd
 from sklearn.cluster import DBSCAN
 #from utils import (#get_dates, 
@@ -16,7 +17,8 @@ from sklearn.cluster import DBSCAN
 
 class turnstile_data_extractor():
     def __init__(self):
-        pass
+        self.stations = pickle.load(open("stations.p","rb"))
+        
     def _convert_start_date(self,date):
         date = datetime.datetime.strptime(date, "%y%m%d")
         idx = (date.weekday() + 1) % 7
@@ -61,10 +63,12 @@ class turnstile_data_extractor():
         df.columns = [x.strip() for x in df.columns]
         df['TIME'] = pd.to_datetime(df['DATE'] + ' ' + df['TIME'])
         df = df.sort_values(['STATION','C/A','UNIT','SCP','TIME'])
+        df = df[df['STATION'].isin(self.stations)]
         df = df[df['TIME'].dt.minute==0]
         return df
     
     def _anomaly_replacement(self, df):
+
         df_out = df.copy()
         for x in ['ent','ex']:
             # Find way to not fillna until after dbscan; may be filling with outliers sometimes
@@ -79,8 +83,43 @@ class turnstile_data_extractor():
             eps = int(_df[x].quantile(0.99)*1.5)
             if eps < 220:
                 eps = 220
-            dbscan = DBSCAN(eps=220, 
-                            min_samples=9)
+            elif eps > 1000:
+                eps = 1000
+            min_samples = int(len(df)/1000)
+            if min_samples < 9:
+                min_samples = 9
+            dbscan = DBSCAN(eps=eps, 
+                            min_samples=min_samples)
+            dbscan.fit(_df)
+            outliers = np.argwhere(dbscan.labels_ == -1).flatten()
+            _df.iloc[outliers,:] = np.nan
+            _df = _df.fillna(method='bfill').fillna(method='ffill')
+            df_out[x] = _df
+        return df_out
+    
+    def _anomaly_replacement2(self, df):
+
+        df_out = df.copy()
+        for x in df_out.columns:
+            # Find way to not fillna until after dbscan; may be filling with outliers sometimes
+            # Step 1: Label where nan are located
+            # Step 2: Fill na with mean value
+            # Step 4: dbscan 
+            # Step 5: revert nan's back to nan
+            # Step 5: outliers set to nan
+            df[[x]] = df[[x]].fillna(method='bfill').fillna(method='ffill')
+            _df = df[[x]]
+            #previously used eps 220
+            eps = int(_df[x].quantile(0.99)*1.5)
+            if eps < 220:
+                eps = 220
+            elif eps > 1000:
+                eps = 1000
+            min_samples = int(len(df)/1000)
+            if min_samples < 9:
+                min_samples = 9
+            dbscan = DBSCAN(eps=eps, 
+                            min_samples=min_samples)
             dbscan.fit(_df)
             outliers = np.argwhere(dbscan.labels_ == -1).flatten()
             _df.iloc[outliers,:] = np.nan
@@ -136,6 +175,9 @@ class turnstile_data_extractor():
         df_out_ex = df1.pivot(index='TIME',
                             columns='STATION',
                             values='ex')
+        if replace_anomalies == True:                    
+            df_out_ent = self._anomaly_replacement2(df_out_ent)
+            df_out_ex = self._anomaly_replacement2(df_out_ex)
         return df_out_ent.ffill().bfill(), df_out_ex.ffill().bfill()
 
     def get_data(self, start_date, weeks=1, replace_anomalies=False):
