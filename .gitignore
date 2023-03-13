@@ -1,8 +1,8 @@
 runs/*
-logs/*
 models/*
 scratch/
 __pycache__
+*.logs
 *.csv
 *.parquet
 .ipynb_checkpoints/
