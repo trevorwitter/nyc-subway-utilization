@@ -1,10 +1,9 @@
 runs/*
 logs/*
 models/*
-data/*
+scratch/
 __pycache__
-scratch/*
 *.csv
 *.parquet
 .ipynb_checkpoints/
-.DS_Store/
+.DS_Store
