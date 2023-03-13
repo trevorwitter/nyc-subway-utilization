@@ -16,7 +16,8 @@ from sklearn.cluster import DBSCAN
 
 class turnstile_data_extractor():
     def __init__(self):
-        pass
+        self.stations = pickle.load(open("stations.p","rb"))
+        
     def _convert_start_date(self,date):
         date = datetime.datetime.strptime(date, "%y%m%d")
         idx = (date.weekday() + 1) % 7
@@ -61,6 +62,7 @@ class turnstile_data_extractor():
         df.columns = [x.strip() for x in df.columns]
         df['TIME'] = pd.to_datetime(df['DATE'] + ' ' + df['TIME'])
         df = df.sort_values(['STATION','C/A','UNIT','SCP','TIME'])
+        df = df[df['STATION'].isin(self.stations)]
         df = df[df['TIME'].dt.minute==0]
         return df
     
@@ -79,7 +81,7 @@ class turnstile_data_extractor():
             eps = int(_df[x].quantile(0.99)*1.5)
             if eps < 220:
                 eps = 220
-            dbscan = DBSCAN(eps=220, 
+            dbscan = DBSCAN(eps=eps, 
                             min_samples=9)
             dbscan.fit(_df)
             outliers = np.argwhere(dbscan.labels_ == -1).flatten()
