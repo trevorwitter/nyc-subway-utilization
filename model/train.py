@@ -13,7 +13,8 @@ def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--forecast_lead", default=0, type=int, help="Number of sequential steps ahead to predict")
     parser.add_argument("--batch_size", default=4, type=int, help="Training Batch size")
-    parser.add_argument("--sequence_length", default=30, type=int, help="Sequence length")
+    parser.add_argument("--sequence_length", default=336, type=int, help="Sequence length")
+    parser.add_argument("--horizon_length", default=168, type=int, help="Sequence length")
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="Model learning rate")
     parser.add_argument("--hidden_units", default=32, type=int, help="Number of hidden LSTM units")
     parser.add_argument("--num_layers", default=1, type=int, help="Number of LSTM layers in model")
@@ -26,7 +27,8 @@ def train(
     df, 
     forecast_lead=1,
     batch_size=32,
-    sequence_length=30,
+    sequence_length=336,
+    horizon_length=168,
     learning_rate = 5e-5,
     num_hidden_units=16,
     num_layers=1,
@@ -49,6 +51,7 @@ def train(
         #target=None,
         features=features,
         sequence_length=sequence_length,
+        horizon_length=horizon_length,
         forecast_lead=1
         )
 
@@ -57,6 +60,7 @@ def train(
         #target=None,
         features=features,
         sequence_length=sequence_length,
+        horizon_length=horizon_length,
         forecast_lead=1
         )
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -89,8 +93,15 @@ def train(
         for X, y in train_loader:
             #X = X.to(device=device)
             #y = y.to(device=device)
-            output = model(X)
-            loss = loss_function(output, y)
+            x_ = X
+            for i in range(y.shape[1]):
+                y_ = model(x_)
+                if i == 0:
+                    y_pred = y_
+                else:
+                    y_pred = torch.cat((y_pred, y_), 0)
+                x_ = torch.cat((x_, y_pred.unsqueeze(0)), 1)[:, 1:, :]
+            loss = loss_function(y_pred, y)
             total_loss += loss.item()
             optimizer.zero_grad()
             loss.backward()
