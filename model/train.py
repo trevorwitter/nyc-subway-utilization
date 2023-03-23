@@ -13,7 +13,7 @@ def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--forecast_lead", default=0, type=int, help="Number of sequential steps ahead to predict")
     parser.add_argument("--batch_size", default=4, type=int, help="Training Batch size")
-    parser.add_argument("--sequence_length", default=30, type=int, help="Sequence length")
+    parser.add_argument("--sequence_length", default=336, type=int, help="Sequence length")
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="Model learning rate")
     parser.add_argument("--hidden_units", default=32, type=int, help="Number of hidden LSTM units")
     parser.add_argument("--num_layers", default=1, type=int, help="Number of LSTM layers in model")
@@ -26,7 +26,7 @@ def train(
     df, 
     forecast_lead=1,
     batch_size=32,
-    sequence_length=30,
+    sequence_length=336,
     learning_rate = 5e-5,
     num_hidden_units=16,
     num_layers=1,
