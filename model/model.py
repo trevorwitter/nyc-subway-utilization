@@ -88,6 +88,31 @@ class Decoder(nn.Module):
         x = self.linear(x)
         return x, hn, cn
 
+class AttentionDecoder(nn.Module):
+    def __init__(self, seq_len, attention, input_dim, num_features, dropout=0):
+        super(Decoder, self).__init__()
+        self.seq_len = seq_len
+        self.input_dim = input_dim
+        self.hidden_dim = input_dim
+        self.num_features = num_features
+        self.attention = attention
+        self.dropout=dropout
+
+        self.lstm = nn.LSTM(
+            input_size=encoder_hidden_state + 1, 
+            hidden_size=input_dim,
+            num_layers=3,
+            batch_first=True,
+            dropout=self.dropout
+        )
+        self.linear = nn.Linear(self.hidden_dim*2, self.num_features)
+
+    def forward(self, x, input_h, input_c):
+        x = x.reshape((1,1,1))
+        x, (hn, cn) = self.lstm(x, (input_h, input_c))
+        x = self.linear(x)
+        return x, hn, cn
+
 class Seq2Seq(nn.Module):
     def __init__(self, num_features, horizon, encoder_hidden_units, encoder_num_layers=1, dropout=0):
         super().__init__()
