@@ -78,12 +78,13 @@ def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, dataframe, features, sequence_length=30, forecast_lead=1):
+    def __init__(self, dataframe, features, sequence_length=30, horizon_length=10, forecast_lead=1):
         self.features = features
         self.forecast_lead = forecast_lead
         self.sequence_length = sequence_length
+        self.horizon_length = horizon_length
         self.X = torch.tensor(dataframe[features].iloc[:-self.forecast_lead,:].values).float()
-        self.y = torch.tensor(dataframe[features].iloc[self.forecast_lead:,:].values).float()
+        self.Y = torch.tensor(dataframe[features].iloc[self.forecast_lead:,:].values).float()
     def __len__(self):
         return self.X.shape[0]
     
@@ -91,12 +92,21 @@ class SequenceDataset(Dataset):
         if i > self.sequence_length - 1:
             i_start = i - self.sequence_length + 1
             x = self.X[i_start:(i + 1), :]
+            #y = self.Y[i:(i+self.horizon_length)]
         else:
-            padding = self.X[0].repeat(self.sequence_length - i - 1, 1)
+            padding_x = self.X[0].repeat(self.sequence_length - i - 1, 1)
             x = self.X[0:(i+1), :]
-            x = torch.cat((padding, x), 0)
-        #y = self.X[i + self.forecast_lead]
-        return x, self.y[i]
+            x = torch.cat((padding_x, x), 0)
+        
+        if i < self.__len__() - self.horizon_length:
+            y = self.Y[i:(i+self.horizon_length)]
+        else:
+            dist_from_end = self.__len__() - i
+            padding_y_length = self.horizon_length - dist_from_end
+            padding_y = self.Y[-1].repeat(padding_y_length,1)
+            y = self.Y[i:(i+self.horizon_length)]
+            y = torch.cat((y, padding_y), 0)
+        return x, y
 
 
 def train_model(data_loader, model, loss_function, optimizer, device=torch.device("mps")):
