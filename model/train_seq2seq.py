@@ -88,9 +88,9 @@ def train(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-    train_score = total_loss/num_batches
-    test_score = score_model(test_loader, model, loss_function)
-    logger.info(f"Epoch {ix_epoch} -- Train Loss: {train_score}; Test Loss: {test_score}")
+        train_score = total_loss/num_batches
+        test_score = score_model(test_loader, model, loss_function)
+        logger.info(f"Epoch {ix_epoch} -- Train Loss: {train_score}; Test Loss: {test_score}")
     model_name = f"seq2seq_{num_hidden_units}unit_{num_layers}layer_{sequence_length}seq.pt"
     torch.save(model, f"models/{model_name}")
     logger.info(f"model saved to: models/{model_name}")
