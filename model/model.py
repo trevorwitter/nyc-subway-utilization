@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 class LSTMRegression(nn.Module):
     def __init__(self, num_features, hidden_units, num_layers=1,dropout=0):
@@ -127,7 +128,7 @@ class AttentionDecoder(nn.Module):
         weighted = weighted.squeeze(0)
         x = self.linear(torch.cat((output, weighted), dim=1))
         return x, hn, cn
-        
+
 class Seq2Seq(nn.Module):
     def __init__(self, num_features, window, horizon, hidden_units, num_layers=1, dropout=0):
         super(Seq2Seq, self).__init__()

@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+from torch.autograd import Variable
 from utils import preprocess_data, SequenceDataset, train_model, score_model, log, get_predictions, plot_predictions
 from model import Seq2Seq
 
@@ -19,7 +20,7 @@ from utils import (
 
 def arg_parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--forecast_lead", default=0, type=int, help="Number of sequential steps ahead to predict")
+    parser.add_argument("--forecast_lead", default=1, type=int, help="Number of sequential steps ahead to predict")
     parser.add_argument("--batch_size", default=4, type=int, help="Training Batch size")
     parser.add_argument("--sequence_length", default=336, type=int, help="Sequence length")
     parser.add_argument("--horizon_length", default=168, type=int, help="Sequence length")
@@ -42,20 +43,18 @@ def train(
     dropout=0,
     num_epochs=2
 ):
-    logger = log(path="logs/",file="timeseries_training.logs")
+    logger = log(path="logs/",file="seq2seq_training.logs")
 
-    df_train, df_test, features = preprocess_data(
-        df,
-        #forecast_lead=forecast_lead,
-        train_test_split=0.8
-        )
+    df_train, df_test, features = preprocess_data(df)
+
     train_dataset = SequenceDataset(
         df_train,
         features=features,
         sequence_length=sequence_length,
-        horizon_length=168,
+        horizon_length=horizon_length,
         forecast_lead=forecast_lead
         )
+
     test_dataset = SequenceDataset(
         df_test,
         features=features,
@@ -63,8 +62,8 @@ def train(
         horizon_length=horizon_length,
         forecast_lead=forecast_lead
         )
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     model = Seq2Seq(
         num_features=len(features), 
@@ -117,14 +116,3 @@ if __name__ == "__main__":
         dropout=args.dropout,
         num_epochs=args.num_epochs,
     )
-
-    df, 
-    forecast_lead=1,
-    batch_size=32,
-    sequence_length=336,
-    horizon_length=168,
-    learning_rate = 5e-5,
-    num_hidden_units=16,
-    num_layers=1,
-    dropout=0,
-    num_epochs=2
