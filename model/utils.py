@@ -83,6 +83,7 @@ class SequenceDataset(Dataset):
         self.features = features
         self.forecast_lead = forecast_lead
         self.sequence_length = sequence_length
+        self.horizon_length = horizon_length
         self.X = torch.tensor(dataframe[features].iloc[:-self.forecast_lead,:].values).float()
         self.y = torch.tensor(dataframe[features].iloc[self.forecast_lead:,:].values).float()
     def __len__(self):
@@ -139,8 +140,15 @@ def train_model(data_loader, model, loss_function, optimizer, device=torch.devic
     for X, y in data_loader:
         #X = X.to(device=device)
         #y = y.to(device=device)
-        output = model(X)
-        loss = loss_function(output, y)
+        x_ = X
+        for i in range(y.shape[1]):
+            y_ = model(x_)
+            if i == 0:
+                y_pred = y_
+            else:
+                y_pred = torch.cat((y_pred, y_), 0)
+            x_ = torch.cat((x_, y_pred.unsqueeze(0)), 1)[:, 1:, :]
+        loss = loss_function(y_pred, y)
         total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
@@ -157,8 +165,15 @@ def score_model(data_loader, model, loss_function, device=torch.device("mps")):
         for X, y in data_loader:
             #X = X.to(device)
             #y = y.to(device)
-            output = model(X)
-            loss = loss_function(output, y)
+            x_ = X
+            for i in range(y.shape[1]):
+                y_ = model(x_)
+                if i == 0:
+                    y_pred = y_
+                else:
+                    y_pred = torch.cat((y_pred, y_), 0)
+                x_ = torch.cat((x_, y_pred.unsqueeze(0)), 1)[:, 1:, :]
+            loss = loss_function(y_pred, y)
             total_loss += loss.item()
     avg_loss = total_loss/num_batches
     return avg_loss
