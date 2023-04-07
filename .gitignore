@@ -1,6 +1,5 @@
 runs/*
 models/*
-scratch/
 __pycache__
 *.logs
 *.csv
