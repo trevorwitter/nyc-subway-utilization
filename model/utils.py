@@ -49,7 +49,9 @@ def log(path, file):
     return logger
 
 def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
-    """To do: save column means and stds to json to use for converting back at inference"""
+    """Normalizes feature values and saves column means and stds to json 
+       to use for converting back at inference
+    """
     features = list(df.columns)
     
 
@@ -76,8 +78,28 @@ def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
         json.dump(col_stats, fp)
     return df_train, df_test, features
 
-
 class SequenceDataset(Dataset):
+    def __init__(self, dataframe, features, sequence_length=30, forecast_lead=1):
+        self.features = features
+        self.forecast_lead = forecast_lead
+        self.sequence_length = sequence_length
+        self.X = torch.tensor(dataframe[features].iloc[:-self.forecast_lead,:].values).float()
+        self.y = torch.tensor(dataframe[features].iloc[self.forecast_lead:,:].values).float()
+    def __len__(self):
+        return self.X.shape[0]
+    
+    def __getitem__(self, i):
+        if i > self.sequence_length - 1:
+            i_start = i - self.sequence_length + 1
+            x = self.X[i_start:(i + 1), :]
+        else:
+            padding = self.X[0].repeat(self.sequence_length - i - 1, 1)
+            x = self.X[0:(i+1), :]
+            x = torch.cat((padding, x), 0)
+        #y = self.X[i + self.forecast_lead]
+        return x, self.y[i]
+        
+class Seq2SeqDataset(Dataset):
     def __init__(self, dataframe, features, sequence_length=30, horizon_length=10, forecast_lead=1):
         self.features = features
         self.forecast_lead = forecast_lead

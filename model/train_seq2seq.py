@@ -5,14 +5,14 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch.autograd import Variable
-from utils import preprocess_data, SequenceDataset, train_model, score_model, log, get_predictions, plot_predictions
+
 from model import Seq2Seq
 
 from utils import (
-    train_model,
     preprocess_data, 
-    SequenceDataset, 
+    Seq2SeqDataset, 
     score_model, 
+    log,
     predict,
     get_predictions,
     plot_predictions)
@@ -47,7 +47,7 @@ def train(
 
     df_train, df_test, features = preprocess_data(df)
 
-    train_dataset = SequenceDataset(
+    train_dataset = Seq2SeqDataset(
         df_train,
         features=features,
         sequence_length=sequence_length,
@@ -55,15 +55,15 @@ def train(
         forecast_lead=forecast_lead
         )
 
-    test_dataset = SequenceDataset(
+    test_dataset = Seq2SeqDataset(
         df_test,
         features=features,
         sequence_length=sequence_length,
         horizon_length=horizon_length,
         forecast_lead=forecast_lead
         )
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=6)
 
     model = Seq2Seq(
         num_features=len(features), 
@@ -76,7 +76,6 @@ def train(
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
     for ix_epoch in range(num_epochs):
         logger.info(f"Epoch: {ix_epoch}")
-        #train_score = train_model(train_loader, model, loss_function, optimizer=optimizer)
         num_batches = len(train_loader)
         total_loss = 0
         model.train()
