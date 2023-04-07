@@ -1,6 +1,7 @@
 runs/*
 models/*
 __pycache__
+logs/
 *.logs
 *.csv
 *.parquet
