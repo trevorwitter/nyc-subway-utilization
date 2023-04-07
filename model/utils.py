@@ -77,7 +77,7 @@ def preprocess_data(df, forecast_lead=None, train_test_split=0.8):
     return df_train, df_test, features
 
 
-class SequenceDataset(Dataset):
+class HorizonSequenceDataset(Dataset):
     def __init__(self, dataframe, features, sequence_length=336, horizon_length=168, forecast_lead=1):
         self.features = features
         self.forecast_lead = forecast_lead
