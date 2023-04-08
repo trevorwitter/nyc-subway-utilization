@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-from utils import preprocess_data, SequenceDataset, train_model, score_model, log, get_predictions, plot_predictions
+from utils import preprocess_data, SequenceDataset, HorizonSequenceDataset, Seq2SeqDataset, train_model, score_model, log, get_predictions, plot_predictions
 from model import LSTMRegression
 #from torch.utils.tensorboard import SummaryWriter
 
@@ -46,7 +46,7 @@ def train(
         train_test_split=0.8
         )
 
-    train_dataset = SequenceDataset(
+    train_dataset = Seq2SeqDataset(
         df_train,
         #target=None,
         features=features,
@@ -55,7 +55,7 @@ def train(
         forecast_lead=1
         )
 
-    test_dataset = SequenceDataset(
+    test_dataset = Seq2SeqDataset(
         df_test,
         #target=None,
         features=features,
@@ -63,8 +63,8 @@ def train(
         horizon_length=horizon_length,
         forecast_lead=1
         )
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=6)
     
     #tb = SummaryWriter()
     model = LSTMRegression(
@@ -77,11 +77,11 @@ def train(
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    seqs, labels = next(iter(train_loader))
+    #seqs, labels = next(iter(train_loader))
     #tb.add_graph(model,seqs)
     
     test_score = score_model(test_loader, model, loss_function)
-
+    print(test_score)
     
     for ix_epoch in range(num_epochs):
         logger.info(f"Epoch: {ix_epoch}")
@@ -136,6 +136,7 @@ if __name__=="__main__":
     filename = "../data/mta_subway_221231_100wk_dbscan.parquet"
     df = pd.read_parquet(filename)
     df = df.fillna(0)
+    #df = df.head(500)
     model = train(
         df,
         forecast_lead=args.forecast_lead,

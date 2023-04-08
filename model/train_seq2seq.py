@@ -12,6 +12,7 @@ from utils import (
     preprocess_data, 
     Seq2SeqDataset, 
     score_model, 
+    score_model2, 
     log,
     predict,
     get_predictions,
@@ -21,13 +22,13 @@ from utils import (
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--forecast_lead", default=1, type=int, help="Number of sequential steps ahead to predict")
-    parser.add_argument("--batch_size", default=4, type=int, help="Training Batch size")
+    parser.add_argument("--batch_size", default=32, type=int, help="Training Batch size")
     parser.add_argument("--sequence_length", default=336, type=int, help="Sequence length")
     parser.add_argument("--horizon_length", default=168, type=int, help="Sequence length")
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="Model learning rate")
     parser.add_argument("--hidden_units", default=32, type=int, help="Number of hidden LSTM units")
     parser.add_argument("--num_layers", default=1, type=int, help="Number of LSTM layers in model")
-    parser.add_argument("--dropout", default=0.5, type=float, help="probability (0-1) of LSTM units randomly dropped out during each training epoch")
+    parser.add_argument("--dropout", default=0.2, type=float, help="probability (0-1) of LSTM units randomly dropped out during each training epoch")
     parser.add_argument("--num_epochs", default=2, type=int, help="Number of training epochs")
     return parser.parse_args()
 
